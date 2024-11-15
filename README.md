@@ -1,5 +1,41 @@
 # Automatic Gateway
 
+## Architecture
+```mermaid
+graph TD
+    %% Root Nodes
+    Drivers[Drivers]
+    Library[Library]
+
+    %% Drivers Details
+    Drivers --> GPIO[GPIO]
+    GPIO --> SetCfg["set_cfg(cfg, initial_value)"]
+    GPIO --> GetCfg["get_cfg()"]
+    GPIO --> Write["write(state)"]
+    GPIO --> Toggle["toggle()"]
+    GPIO --> Read["read()"]
+
+    %% Library Details
+    Library --> MQTT[MQTT]
+    MQTT --> Connect["connect()"]
+    MQTT --> Publish["publish()"]
+    MQTT --> Subscribe["subscribe()"]
+
+    %% Intermediates and Their Dependencies
+    EndlineSensor --> Drivers
+    EndlineSensor --> Library
+
+    Motor --> Drivers
+    Motor --> Library
+
+    ControlGate --> Drivers
+    ControlGate --> Library
+
+```
+
+## External Interruptions
+The GPIO6, GPIO7, GPIO8, GPIO9, GPIO10, and GPIO11 can not recommended to use as interrupts because they are used by the SPI Flash communication.
+
 ## Code Quality
 The project uses `clang-format` to enforce code style, to format the code run:
 ```bash
