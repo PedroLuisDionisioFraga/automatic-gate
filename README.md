@@ -41,6 +41,7 @@ The project uses `clang-format` to enforce code style, to format the code run:
 ```bash
 clang-format -i *.cpp *.h
 ```
+Online `clang-format` tool can be found [here](https://clang-format-configurator.site/).
 
 ### Download Clang-Format
 - Linux:
