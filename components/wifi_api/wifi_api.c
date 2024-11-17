@@ -12,6 +12,8 @@
  *
  */
 
+#include "wifi_api.h"
+
 #include <esp_event.h>
 #include <esp_log.h>
 #include <esp_netif.h>
@@ -20,7 +22,7 @@
 #include <nvs_flash.h>
 #include <string.h>
 
-#include "wifi_api.h"
+#include "wifi_api_utils.h"
 
 /**
  * @brief Tag for logging.
@@ -61,6 +63,36 @@ static esp_event_handler_instance_t instance_any_id = NULL;
  * @brief Event handler instance for IP acquisition event.
  */
 static esp_event_handler_instance_t instance_got_ip = NULL;
+
+void wifi_api_scan()
+{
+  ESP_LOGI(TAG, "Starting Wi-Fi scan...");
+
+  uint16_t number = 10;
+  wifi_ap_record_t ap_info[10];
+  uint16_t ap_count = 0;
+  memset(ap_info, 0, sizeof(ap_info));
+
+  wifi_scan_config_t scan_config = {
+    .ssid = NULL, .bssid = NULL, .channel = 0, .show_hidden = true};
+  ESP_ERROR_CHECK(esp_wifi_scan_start(&scan_config, true));
+
+  ESP_LOGI(TAG, "Max AP number ap_info can hold = %u", number);
+
+  ESP_ERROR_CHECK(esp_wifi_scan_get_ap_num(&ap_count));
+  ESP_ERROR_CHECK(esp_wifi_scan_get_ap_records(&number, ap_info));
+
+  ESP_LOGI(TAG, "Total APs scanned = %u, actual AP number ap_info holds = %u",
+           ap_count, number);
+  for (int i = 0; i < number; i++)
+  {
+    ESP_LOGI(TAG, "SSID \t\t%s", ap_info[i].ssid);
+    ESP_LOGI(TAG, "RSSI \t\t%d", ap_info[i].rssi);
+    print_auth_mode(ap_info[i].authmode);
+    ESP_LOGI(TAG, "Channel \t\t%d", ap_info[i].primary);
+  }
+}
+
 /**
  * @brief Event handler for Wi-Fi and IP events.
  *
@@ -81,8 +113,9 @@ static void wifi_api_event_handler(void *arg, esp_event_base_t event_base,
     case WIFI_EVENT_STA_START:
       esp_wifi_connect();
       break;
+
     case WIFI_EVENT_STA_DISCONNECTED:
-      if (s_retry_num < 10)
+      if (s_retry_num < MAX_RETRY)
       {
         esp_wifi_connect();
         s_retry_num++;
@@ -91,18 +124,20 @@ static void wifi_api_event_handler(void *arg, esp_event_base_t event_base,
       else
       {
         // Making available to `xSemaphoreTake` in `wifi_api_configure`, i.e.,
-        // allows the application to continue execution below the `xSemaphoreTake()` call
+        // allows the application to continue execution below the
+        // `xSemaphoreTake()` call
         xSemaphoreGive(s_ip_semaphore);
         ESP_LOGI(TAG, "Connect to the AP fail");
       }
-      ESP_LOGI(TAG, "Connect to the AP fail");
       break;
+
     case IP_EVENT_STA_GOT_IP:
       s_retry_num = 0;
       ip_event_got_ip_t *event = (ip_event_got_ip_t *)event_data;
       ESP_LOGI(TAG, "Got ip:" IPSTR, IP2STR(&event->ip_info.ip));
       xSemaphoreGive(s_ip_semaphore);
       break;
+
     default:
       break;
   }

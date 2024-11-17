@@ -15,7 +15,6 @@
 #define WIFI_API_H
 
 #include <esp_err.h>
-
 #include <esp_wifi.h>
 
 /**
@@ -49,5 +48,16 @@ esp_err_t wifi_api_disconnect();
  * @return ESP_OK on success, ESP_FAIL on failure.
  */
 esp_err_t wifi_api_alter_sta(const char *new_ssid, const char *new_password);
+
+/**
+ * @brief Start a Wi-Fi scan.
+ *
+ * This function prints the authentication mode of the Wi-Fi network based on
+ * the `authmode` parameter.
+ *
+ * @note It must be called after a successful Wi-Fi connection, i.e., after
+ * `esp_wifi_start()` and `esp_wifi_connect()`.
+ */
+void wifi_api_scan();
 
 #endif // WIFI_API_H
