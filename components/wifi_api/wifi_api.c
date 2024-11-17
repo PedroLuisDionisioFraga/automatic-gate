@@ -188,6 +188,9 @@ esp_err_t wifi_api_configure(const char *ssid, const char *password)
   ESP_ERROR_CHECK(esp_event_handler_instance_register(
     WIFI_EVENT, ESP_EVENT_ANY_ID, &wifi_api_event_handler, NULL,
     &instance_any_id));
+  ESP_ERROR_CHECK(esp_event_handler_instance_register(
+    IP_EVENT, IP_EVENT_STA_GOT_IP, &wifi_api_event_handler, NULL,
+    &instance_got_ip));
 
   // --------------------------------------------------------------------
 
