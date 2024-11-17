@@ -3,12 +3,14 @@ IndentWidth: 2
 ColumnLimit: 80
 ContinuationIndentWidth: 2
 IndentCaseLabels: true  # Indent case into switch
+AlignEscapedNewlines: LeftWithLastLine
+IncludeBlocks: Regroup  # Regrouped with blank lines between categories
 #AllowShortIfStatementsOnASingleLine: AllIfsAndElse  # Short if in one line
 # Import Sorting
 IncludeCategories:
-  - Regex: '^<.*\.h>$'   # Standard library headers
+  - Regex: '^<.*\.h>$'    # Standard library headers
     Priority: 1
-  - Regex: '^"./.*"' # Project-specific headers
+  - Regex: '^".*\.h"$'       # Project-specific headers
     Priority: 2
   - Regex: '.*'           # Other includes
     Priority: 3
