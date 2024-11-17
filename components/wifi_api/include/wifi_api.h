@@ -16,8 +16,7 @@
 
 #include <esp_err.h>
 
-#include "esp_err.h"
-#include "esp_wifi.h"
+#include <esp_wifi.h>
 
 /**
  * @brief Configure Wi-Fi with the given SSID and password.

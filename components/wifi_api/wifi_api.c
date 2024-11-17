@@ -90,6 +90,8 @@ static void wifi_api_event_handler(void *arg, esp_event_base_t event_base,
       }
       else
       {
+        // Making available to `xSemaphoreTake` in `wifi_api_configure`, i.e.,
+        // allows the application to continue execution below the `xSemaphoreTake()` call
         xSemaphoreGive(s_ip_semaphore);
         ESP_LOGI(TAG, "Connect to the AP fail");
       }
@@ -135,6 +137,7 @@ static void initialize_nvs()
 {
   ESP_ERROR_CHECK(nvs_flash_init());
 }
+
 esp_err_t wifi_api_configure(const char *ssid, const char *password)
 {
   initialize_nvs();
@@ -194,6 +197,7 @@ esp_err_t wifi_api_configure(const char *ssid, const char *password)
 
   // --------------------------------------------------------------------
 
+  // Wait for IP acquisition until success or timeout
   xSemaphoreTake(s_ip_semaphore, portMAX_DELAY);
 
   if (s_retry_num > MAX_RETRY)
