@@ -25,33 +25,25 @@
 static const char *TAG = "MQTT5 API";
 static esp_mqtt_client_handle_t client = NULL;
 
-typedef struct
-{
-  const char *topic;
-  int qos;
-  mqtt5_api_callback_t callback;
-} mqtt5_subscription_t;
+static mqtt5_api_subscription_t topics[MAX_TOPICS_SUBSCRIBED];
 
-static mqtt5_subscription_t topics[MAX_TOPICS_SUBSCRIBED];
-
-static void _add_mqtt5_subscription(const char *topic, int qos,
-                                    mqtt5_api_callback_t callback)
+static void _add_mqtt5_subscription(mqtt5_api_subscription_t *subscription)
 {
   for (int i = 0; i < MAX_TOPICS_SUBSCRIBED; i++)
   {
     if (topics[i].topic != NULL)
       continue;
 
-    topics[i].topic = topic;
-    topics[i].qos = qos;
-    topics[i].callback = callback;
+    topics[i].topic = subscription->topic;
+    topics[i].qos = subscription->qos;
+    topics[i].callback = subscription->callback;
     break;
   }
 }
 
 static inline bool _is_same_subscription(const char *topic, int qos,
-                                         void *callback,
-                                         mqtt5_subscription_t *subscription)
+                                         mqtt5_api_callback_t callback,
+                                         mqtt5_api_subscription_t *subscription)
 {
   return (strcmp(topic, subscription->topic) == 0) &&
          (qos == subscription->qos) && (callback == subscription->callback);
@@ -163,16 +155,16 @@ esp_err_t mqtt5_api_publish(const char *topic, const char *data, int len,
   return ESP_OK;
 }
 
-esp_err_t mqtt5_api_subscribe(const char *topic, int qos,
-                              mqtt5_api_callback_t callback)
+esp_err_t mqtt5_api_subscribe(mqtt5_api_subscription_t *subscription)
 {
-  int msg_id = esp_mqtt_client_subscribe(client, topic, qos);
+  int msg_id =
+    esp_mqtt_client_subscribe(client, subscription->topic, subscription->qos);
   if (msg_id == -1)
   {
     ESP_LOGE(TAG, "Failed to subscribe to topic");
     return ESP_FAIL;
   }
-  _add_mqtt5_subscription(topic, qos, callback);
+  _add_mqtt5_subscription(subscription);
   ESP_LOGI(TAG, "Subscribed to topic, msg_id=%d", msg_id);
   return ESP_OK;
 }
