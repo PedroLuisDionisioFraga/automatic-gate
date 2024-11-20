@@ -18,6 +18,12 @@
 #include <stdint.h>
 
 /**
+ * @brief New type is for a function pointer.
+ *
+ */
+typedef void (*mqtt5_api_callback_t)(char *data, int len);
+
+/**
  * @brief Start the MQTT client.
  *
  * This function initializes and starts the MQTT client with the specified
@@ -58,6 +64,7 @@ esp_err_t mqtt5_api_publish(const char *topic, const char *data, int len,
  * @param qos The quality of service level (0, 1, or 2).
  * @return ESP_OK on success, ESP_FAIL on failure.
  */
-esp_err_t mqtt5_api_subscribe(const char *topic, int qos);
+esp_err_t mqtt5_api_subscribe(const char *topic, int qos,
+                              mqtt5_api_callback_t callback);
 
 #endif // MQTT5_API_H

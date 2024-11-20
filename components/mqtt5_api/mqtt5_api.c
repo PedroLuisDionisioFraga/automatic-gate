@@ -16,17 +16,53 @@
 #include <esp_event.h>
 #include <esp_log.h>
 #include <freertos/FreeRTOS.h>
+#include <string.h>
 
 #include "mqtt5_properties.h"
 
+#define MAX_TOPICS_SUBSCRIBED 10
+
 static const char *TAG = "MQTT5 API";
 static esp_mqtt_client_handle_t client = NULL;
+
+typedef struct
+{
+  const char *topic;
+  int qos;
+  mqtt5_api_callback_t callback;
+} mqtt5_subscription_t;
+
+static mqtt5_subscription_t topics[MAX_TOPICS_SUBSCRIBED];
+
+static void _add_mqtt5_subscription(const char *topic, int qos,
+                                    mqtt5_api_callback_t callback)
+{
+  for (int i = 0; i < MAX_TOPICS_SUBSCRIBED; i++)
+  {
+    if (topics[i].topic != NULL)
+      continue;
+
+    topics[i].topic = topic;
+    topics[i].qos = qos;
+    topics[i].callback = callback;
+    break;
+  }
+}
+
+static inline bool _is_same_subscription(const char *topic, int qos,
+                                         void *callback,
+                                         mqtt5_subscription_t *subscription)
+{
+  return (strcmp(topic, subscription->topic) == 0) &&
+         (qos == subscription->qos) && (callback == subscription->callback);
+}
 
 /**
  * @brief Event handler for MQTT events.
  *
  * This function handles various MQTT events such as connection, disconnection,
- * subscription, unsubscription, message publication, message reception, and errors.
+ * subscription, unsubscription, message publication, message reception, and
+ * errors.
  *
  * @param handler_args User-defined argument (not used).
  * @param base Event base.
@@ -67,6 +103,18 @@ static void mqtt5_api_event_handler(void *handler_args, esp_event_base_t base,
       ESP_LOGI(TAG, "MQTT_EVENT_DATA");
       printf("TOPIC=%.*s\r\n", event->topic_len, event->topic);
       printf("DATA=%.*s\r\n", event->data_len, event->data);
+      for (int i = 0; i < MAX_TOPICS_SUBSCRIBED; i++)
+      {
+        if (topics[i].topic == NULL)
+          continue;
+
+        if (_is_same_subscription(event->topic, event->qos, topics[i].callback,
+                                  &topics[i]))
+        {
+          topics[i].callback(event->data, event->data_len);
+          break;
+        }
+      }
       break;
 
     case MQTT_EVENT_ERROR:
@@ -115,7 +163,8 @@ esp_err_t mqtt5_api_publish(const char *topic, const char *data, int len,
   return ESP_OK;
 }
 
-esp_err_t mqtt5_api_subscribe(const char *topic, int qos)
+esp_err_t mqtt5_api_subscribe(const char *topic, int qos,
+                              mqtt5_api_callback_t callback)
 {
   int msg_id = esp_mqtt_client_subscribe(client, topic, qos);
   if (msg_id == -1)
@@ -123,6 +172,7 @@ esp_err_t mqtt5_api_subscribe(const char *topic, int qos)
     ESP_LOGE(TAG, "Failed to subscribe to topic");
     return ESP_FAIL;
   }
+  _add_mqtt5_subscription(topic, qos, callback);
   ESP_LOGI(TAG, "Subscribed to topic, msg_id=%d", msg_id);
   return ESP_OK;
 }

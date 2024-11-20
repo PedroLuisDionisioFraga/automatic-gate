@@ -65,6 +65,14 @@ static void wifi_task(void *pvParameters)
   }
 }
 
+void mqtt5_subscribe_callback(char *data, int len)
+{
+  ESP_LOGI(TAG, "Received message: %.*s", len, data);
+  ESP_LOGI(
+    TAG,
+    "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA");
+}
+
 /**
  * @brief Manage the MQTT5 connection.
  *
@@ -87,7 +95,7 @@ static void mqtt5_task(void *pvParameters)
     ESP_LOGI(TAG, "Wi-Fi already connected, starting MQTT5...");
     mqtt5_api_start(MQTT5_URL, MQTT5_USERNAME, MQTT5_PASSWORD, MQTT5_PORT);
     mqtt5_api_publish("c115/publishpedro", "Hello MQTT5", 11, 0, 0);
-    mqtt5_api_subscribe("c115/subscribe", 0);
+    mqtt5_api_subscribe("c115/subscribe", 0, &mqtt5_subscribe_callback);
   }
 
   while (1)
