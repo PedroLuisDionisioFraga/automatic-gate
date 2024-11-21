@@ -14,7 +14,7 @@
 #ifndef MQTT5_PROPERTIES_H
 #define MQTT5_PROPERTIES_H
 
-#include <mqtt_client.h>
+#include <mqtt5_client.h>
 
 // TODO: Study how to use this property
 static esp_mqtt5_user_property_item_t user_property_arr[] = {
