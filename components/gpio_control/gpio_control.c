@@ -50,7 +50,6 @@ gpio_cfg_t *gpio_get_cfg(gpio_num_t pin) {
 	return NULL; 
 }
 
-
 esp_err_t gpio_write(gpio_num_t pin, uint32_t state) {
 	gpio_cfg_t *cfg = gpio_get_cfg(pin);
 	if (!cfg || cfg->mode != GPIO_MODE_OUTPUT) {
@@ -60,7 +59,6 @@ esp_err_t gpio_write(gpio_num_t pin, uint32_t state) {
 	return ESP_OK;
 }
 
-// Função para alternar o estado do GPIO
 esp_err_t gpio_toggle(gpio_num_t pin) {
 	gpio_cfg_t *cfg = gpio_get_cfg(pin);
 	if (!cfg || cfg->mode != GPIO_MODE_OUTPUT) {
@@ -71,11 +69,10 @@ esp_err_t gpio_toggle(gpio_num_t pin) {
 	return ESP_OK;
 }
 
-// Função para ler o estado do GPIO
 uint32_t gpio_read(gpio_num_t pin) {
 	gpio_cfg_t *cfg = gpio_get_cfg(pin);
 	if (!cfg || (cfg->mode != GPIO_MODE_INPUT && cfg->mode != GPIO_MODE_INPUT_OUTPUT)) {
-		return -1; // Retornar -1 se o modo não permitir leitura
+		return -1;
 	}
 	return gpio_get_level(pin);
 }
