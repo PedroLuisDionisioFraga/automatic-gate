@@ -4,6 +4,9 @@
 #include <freertos/task.h>
 
 #include "app_manager.h"
+#include "gpio_control.h"
+#include "gate_control.h"
+#include "gate_pinout.h"
 
 static const char *TAG = "MAIN";
 
