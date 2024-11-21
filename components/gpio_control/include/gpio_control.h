@@ -12,11 +12,10 @@ typedef struct {
 } gpio_cfg_t;
 
 // Funções públicas
-esp_err_t gpio_set_cfg(gpio_cfg_t cfg, uint32_t initial_value=0);
+esp_err_t gpio_set_cfg(gpio_cfg_t cfg);
 gpio_cfg_t *gpio_get_cfg(gpio_num_t pin);
 esp_err_t gpio_write(gpio_num_t pin, uint32_t state);
 esp_err_t gpio_toggle(gpio_num_t pin);
 uint32_t gpio_read(gpio_num_t pin);
-
 
 #endif // GPIO_CONTROL_H

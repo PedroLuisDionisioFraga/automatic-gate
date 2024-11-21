@@ -6,7 +6,7 @@
 static gpio_cfg_t gpio_table[MAX_GPIO_COUNT];
 static int gpio_table_count = 0;
 
-esp_err_t gpio_set_cfg(gpio_cfg_t cfg, uint32_t initial_value) {
+esp_err_t gpio_set_cfg(gpio_cfg_t cfg) {
 	for (int i = 0; i < gpio_table_count; i++) {
 		if (gpio_table[i].pin == cfg.pin) {
 			gpio_table[i] = cfg;
@@ -35,7 +35,7 @@ configure_gpio:
 	}
 
 	if (cfg.mode == GPIO_MODE_OUTPUT) {
-		gpio_set_level(cfg.pin, initial_value);
+		gpio_set_level(cfg.pin, 0);
 	}
 
 	return ESP_OK;
