@@ -20,25 +20,25 @@ esp_err_t gpio_set_cfg(gpio_cfg_t cfg, uint32_t initial_value) {
 		return ESP_ERR_NO_MEM;
 	}
 
-	configure_gpio:
-		gpio_config_t io_conf = {
-			.pin_bit_mask = (1ULL << cfg.pin),
-			.mode = cfg.mode,
-			.pull_up_en = cfg.pullup,
-			.pull_down_en = cfg.pulldown,
-			.intr_type = GPIO_INTR_DISABLE
-		};
+configure_gpio:
+	gpio_config_t io_conf = {
+		.pin_bit_mask = (1ULL << cfg.pin),
+		.mode = cfg.mode,
+		.pull_up_en = cfg.pullup,
+		.pull_down_en = cfg.pulldown,
+		.intr_type = GPIO_INTR_DISABLE
+	};
 
-		esp_err_t err = gpio_config(&io_conf);
-		if (err != ESP_OK) {
-			return err;
-		}
+	esp_err_t err = gpio_config(&io_conf);
+	if (err != ESP_OK) {
+		return err;
+	}
 
-		if (cfg.mode == GPIO_MODE_OUTPUT) {
-			gpio_set_level(cfg.pin, initial_value);
-		}
+	if (cfg.mode == GPIO_MODE_OUTPUT) {
+		gpio_set_level(cfg.pin, initial_value);
+	}
 
-		return ESP_OK;
+	return ESP_OK;
 }
 
 gpio_cfg_t *gpio_get_cfg(gpio_num_t pin) {
