@@ -35,18 +35,17 @@ static void _add_mqtt5_subscription(mqtt5_api_subscription_t *subscription)
       continue;
 
     topics[i].topic = subscription->topic;
-    topics[i].qos = subscription->qos;
     topics[i].callback = subscription->callback;
     break;
   }
 }
 
-static inline bool _is_same_subscription(const char *topic, int qos,
+static inline bool _is_same_subscription(const char *topic,
                                          mqtt5_api_callback_t callback,
                                          mqtt5_api_subscription_t *subscription)
 {
   return (strcmp(topic, subscription->topic) == 0) &&
-         (qos == subscription->qos) && (callback == subscription->callback);
+         (callback == subscription->callback);
 }
 
 /**
@@ -100,8 +99,7 @@ static void mqtt5_api_event_handler(void *handler_args, esp_event_base_t base,
         if (topics[i].topic == NULL)
           continue;
 
-        if (_is_same_subscription(event->topic, event->qos, topics[i].callback,
-                                  &topics[i]))
+        if (_is_same_subscription(event->topic, topics[i].callback, &topics[i]))
         {
           topics[i].callback(event->data, event->data_len);
           break;
@@ -140,12 +138,12 @@ static void mqtt5_api_event_handler(void *handler_args, esp_event_base_t base,
   }
 }
 
-esp_err_t mqtt5_api_publish(const char *topic, const char *data, int len,
-                            int qos, int retain)
+esp_err_t mqtt5_api_publish(const char *topic, const char *data, int len)
 {
   // esp_mqtt5_client_set_publish_property(client, &publish_property);
   // ESP_LOGI(TAG, "Publish properties configured.");
-  int msg_id = esp_mqtt_client_publish(client, topic, data, len, qos, retain);
+  int msg_id = esp_mqtt_client_publish(client, topic, data, len, DEFAULT_QOS,
+                                       DEFAULT_RETAIN);
   if (msg_id == -1)
   {
     ESP_LOGE(TAG, "Failed to publish message");
@@ -158,7 +156,7 @@ esp_err_t mqtt5_api_publish(const char *topic, const char *data, int len,
 esp_err_t mqtt5_api_subscribe(mqtt5_api_subscription_t *subscription)
 {
   int msg_id =
-    esp_mqtt_client_subscribe(client, subscription->topic, subscription->qos);
+    esp_mqtt_client_subscribe(client, subscription->topic, DEFAULT_QOS);
   if (msg_id == -1)
   {
     ESP_LOGE(TAG, "Failed to subscribe to topic");
@@ -181,7 +179,7 @@ void mqtt5_api_start(char *broker_url, char *username, char *password,
     // .credentials.authentication.password = password,
     .session.protocol_ver = MQTT_PROTOCOL_V_5,
     .network.disable_auto_reconnect = true,
-    .session.last_will.qos = 0,
+    .session.last_will.qos = DEFAULT_QOS,
     .session.last_will.topic = "c115/last_will",
     .session.last_will.msg = "i will leave",
   };
