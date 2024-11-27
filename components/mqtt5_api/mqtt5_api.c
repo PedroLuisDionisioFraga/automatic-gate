@@ -25,28 +25,30 @@
 static const char *TAG = "MQTT5 API";
 static esp_mqtt_client_handle_t client = NULL;
 
-static mqtt5_api_subscription_t topics[MAX_TOPICS_SUBSCRIBED];
+static mqtt5_api_subscription_t s_subscriptions[MAX_TOPICS_SUBSCRIBED];
 
 static void _add_mqtt5_subscription(mqtt5_api_subscription_t *subscription)
 {
   for (int i = 0; i < MAX_TOPICS_SUBSCRIBED; i++)
   {
-    if (topics[i].topic != NULL)
+    if (s_subscriptions[i].topic[0] != '\0')
       continue;
 
-    topics[i].topic = subscription->topic;
-    topics[i].qos = subscription->qos;
-    topics[i].callback = subscription->callback;
+    strncpy(s_subscriptions[i].topic, subscription->topic,
+            MAX_MQTT_TOPIC_LEN - 1);
+    s_subscriptions[i].topic[MAX_MQTT_TOPIC_LEN - 1] = '\0';
+
+    s_subscriptions[i].callback = subscription->callback;
+
+    ESP_LOGW(TAG, "Subscription added to index %d", i);
+    ESP_LOGW(TAG, "Topic: %s", s_subscriptions[i].topic);
     break;
   }
 }
-
-static inline bool _is_same_subscription(const char *topic, int qos,
-                                         mqtt5_api_callback_t callback,
-                                         mqtt5_api_subscription_t *subscription)
+static inline bool _is_same_subscription(mqtt5_api_subscription_t *s1,
+                                         mqtt5_api_subscription_t *s2)
 {
-  return (strcmp(topic, subscription->topic) == 0) &&
-         (qos == subscription->qos) && (callback == subscription->callback);
+  return (strcmp(s1->topic, s2->topic) == 0) && (s1->callback == s2->callback);
 }
 
 /**
@@ -97,13 +99,18 @@ static void mqtt5_api_event_handler(void *handler_args, esp_event_base_t base,
       printf("DATA=%.*s\r\n", event->data_len, event->data);
       for (int i = 0; i < MAX_TOPICS_SUBSCRIBED; i++)
       {
-        if (topics[i].topic == NULL)
+        if (s_subscriptions[i].topic[0] == '\0' ||
+            s_subscriptions[i].callback == NULL)
           continue;
 
-        if (_is_same_subscription(event->topic, event->qos, topics[i].callback,
-                                  &topics[i]))
+        ESP_LOGW(TAG, "Comparing '%.*s' with '%s'", event->topic_len,
+                 event->topic, s_subscriptions[i].topic);
+
+        if (strncmp(event->topic, s_subscriptions[i].topic, event->topic_len) ==
+              0 &&
+            strlen(s_subscriptions[i].topic) == event->topic_len)
         {
-          topics[i].callback(event->data, event->data_len);
+          s_subscriptions[i].callback(event->data, event->data_len);
           break;
         }
       }
@@ -140,12 +147,12 @@ static void mqtt5_api_event_handler(void *handler_args, esp_event_base_t base,
   }
 }
 
-esp_err_t mqtt5_api_publish(const char *topic, const char *data, int len,
-                            int qos, int retain)
+esp_err_t mqtt5_api_publish(const char *topic, const char *data, int len)
 {
   // esp_mqtt5_client_set_publish_property(client, &publish_property);
   // ESP_LOGI(TAG, "Publish properties configured.");
-  int msg_id = esp_mqtt_client_publish(client, topic, data, len, qos, retain);
+  int msg_id = esp_mqtt_client_publish(client, topic, data, len, DEFAULT_QOS,
+                                       DEFAULT_RETAIN);
   if (msg_id == -1)
   {
     ESP_LOGE(TAG, "Failed to publish message");
@@ -158,14 +165,15 @@ esp_err_t mqtt5_api_publish(const char *topic, const char *data, int len,
 esp_err_t mqtt5_api_subscribe(mqtt5_api_subscription_t *subscription)
 {
   int msg_id =
-    esp_mqtt_client_subscribe(client, subscription->topic, subscription->qos);
+    esp_mqtt_client_subscribe(client, subscription->topic, DEFAULT_QOS);
   if (msg_id == -1)
   {
-    ESP_LOGE(TAG, "Failed to subscribe to topic");
+    ESP_LOGE(TAG, "Failed to subscribe to topic %s", subscription->topic);
     return ESP_FAIL;
   }
   _add_mqtt5_subscription(subscription);
-  ESP_LOGI(TAG, "Subscribed to topic, msg_id=%d", msg_id);
+  ESP_LOGI(TAG, "Subscribed to topic %s, msg_id=%d", subscription->topic,
+           msg_id);
   return ESP_OK;
 }
 
@@ -181,7 +189,7 @@ void mqtt5_api_start(char *broker_url, char *username, char *password,
     // .credentials.authentication.password = password,
     .session.protocol_ver = MQTT_PROTOCOL_V_5,
     .network.disable_auto_reconnect = true,
-    .session.last_will.qos = 0,
+    .session.last_will.qos = DEFAULT_QOS,
     .session.last_will.topic = "c115/last_will",
     .session.last_will.msg = "i will leave",
   };

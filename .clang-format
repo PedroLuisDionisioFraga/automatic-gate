@@ -4,6 +4,7 @@ ColumnLimit: 80
 ContinuationIndentWidth: 2
 IndentCaseLabels: true  # Indent case into switch
 AlignEscapedNewlines: LeftWithLastLine
+SpacesBeforeTrailingComments: 2
 IncludeBlocks: Regroup  # Regrouped with blank lines between categories
 #AllowShortIfStatementsOnASingleLine: AllIfsAndElse  # Short if in one line
 # Import Sorting
@@ -14,3 +15,5 @@ IncludeCategories:
     Priority: 2
   - Regex: '.*'           # Other includes
     Priority: 3
+BraceWrapping:
+  AfterCaseLabel: true
