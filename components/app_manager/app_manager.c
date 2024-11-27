@@ -126,7 +126,7 @@ static void gate_task(void *pvParameters)
     ESP_LOGI(TAG, "MQTT5 connected, starting gate...");
 
     gate_t gate;
-    gate_init_impl(&gate, BASE_MQTT_TOPIC);
+    gate_init_impl(&gate);
   }
 
   while (1)
