@@ -20,6 +20,8 @@
 #define DEFAULT_QOS 0
 #define DEFAULT_RETAIN 0
 
+#define MAX_MQTT_TOPIC_LEN 128
+
 /**
  * @brief New type is for a function pointer.
  *
@@ -34,8 +36,8 @@ typedef void (*mqtt5_api_callback_t)(char *data, int len);
  */
 typedef struct
 {
-  const char *topic;
-  mqtt5_api_callback_t callback;
+  char topic[MAX_MQTT_TOPIC_LEN];  // Fixed-size array for the topic
+  mqtt5_api_callback_t callback;   // Callback function
 } mqtt5_api_subscription_t;
 
 /**
