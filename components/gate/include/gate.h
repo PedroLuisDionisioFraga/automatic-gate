@@ -16,10 +16,8 @@
 
 #include <esp_err.h>
 
-#define MAX_MQTT_TOPIC_LEN 128
-
 #define BASE_MQTT_TOPIC "Inatel/C115/2024/Semester/02"
-#define GATE_SUBSCRIBE_TOPIC "gate/action"
+#define GATE_ACTION_TOPIC "gate/action"
 #define GATE_STATE_TOPIC "gate/state"
 #define GATE_STATE_TOPIC_ANSWER "gate/state/answer"
 
@@ -99,6 +97,6 @@ typedef struct gate
  * @param self
  * @return ESP_OK on success, ESP_FAIL otherwise.
  */
-esp_err_t gate_init_impl(gate_t *self, const char *base_mqtt_topic);
+esp_err_t gate_init_impl(gate_t *self);
 
 #endif  // GATE_H

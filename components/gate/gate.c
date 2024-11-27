@@ -57,6 +57,15 @@ static void gate_mqtt_handler(char *data, int len)
                                                  s_gate_instance->_state))
   {
     ESP_LOGW(TAG, "Gate already is in the objective state");
+
+    char topic[MAX_MQTT_TOPIC_LEN];
+    snprintf(topic, sizeof(topic), "%s/%s", BASE_MQTT_TOPIC,
+             GATE_STATE_TOPIC_ANSWER);
+
+    char gate_state_str[3];
+    snprintf(gate_state_str, sizeof(gate_state_str), "%d", -1);
+
+    mqtt5_api_publish(topic, gate_state_str, strlen(gate_state_str));
     return;
   }
 
@@ -69,7 +78,7 @@ static void gate_mqtt_handler(char *data, int len)
 
       char topic[MAX_MQTT_TOPIC_LEN];
       snprintf(topic, sizeof(topic), "%s/%s", BASE_MQTT_TOPIC,
-               GATE_STATE_TOPIC);
+               GATE_STATE_TOPIC_ANSWER);
 
       char gate_state_str[2];
       snprintf(gate_state_str, sizeof(gate_state_str), "%d", GATE_OPENED);
@@ -85,7 +94,7 @@ static void gate_mqtt_handler(char *data, int len)
 
       char topic[MAX_MQTT_TOPIC_LEN];
       snprintf(topic, sizeof(topic), "%s/%s", BASE_MQTT_TOPIC,
-               GATE_STATE_TOPIC);
+               GATE_STATE_TOPIC_ANSWER);
 
       char gate_state_str[2];
       snprintf(gate_state_str, sizeof(gate_state_str), "%d", GATE_CLOSED);
@@ -125,13 +134,35 @@ static esp_err_t _configure_gpio(uint8_t gpio_pin)
   return ESP_OK;
 }
 
+static void gate_state_mqtt(char *data, int len)
+{
+  if (!s_gate_instance)
+  {
+    ESP_LOGE(TAG, "Gate instance is not initialized");
+    return;
+  }
+
+  ESP_LOGI(TAG, "Gate state queried: %s",
+           s_gate_instance->_state == GATE_OPENED ? "OPENED" : "CLOSED");
+
+  char topic[MAX_MQTT_TOPIC_LEN];
+  snprintf(topic, sizeof(topic), "%s/%s", BASE_MQTT_TOPIC,
+           GATE_STATE_TOPIC_ANSWER);
+
+  char gate_state_str[2];
+  snprintf(gate_state_str, sizeof(gate_state_str), "%d",
+           s_gate_instance->_state);
+
+  mqtt5_api_publish(topic, gate_state_str, strlen(gate_state_str));
+}
+
 /**
  * @brief Initialize the gate instance.
  *
  * @param self Pointer to the gate instance.
  * @return ESP_OK on success, ESP_FAIL otherwise.
  */
-esp_err_t gate_init_impl(gate_t *self, const char *mqtt_subscribe_topic)
+esp_err_t gate_init_impl(gate_t *self)
 {
   if (!self)
     return ESP_FAIL;
@@ -143,11 +174,23 @@ esp_err_t gate_init_impl(gate_t *self, const char *mqtt_subscribe_topic)
 
   esp_err_t ret;
 
-  mqtt5_api_subscription_t sub = {
-    .topic = mqtt_subscribe_topic,
+  mqtt5_api_subscription_t sub_gate_action = {
     .callback = &gate_mqtt_handler,
   };
-  ret = mqtt5_api_subscribe(&sub);
+  snprintf(sub_gate_action.topic, MAX_MQTT_TOPIC_LEN, "%s/%s", BASE_MQTT_TOPIC,
+           GATE_ACTION_TOPIC);
+
+  ret = mqtt5_api_subscribe(&sub_gate_action);
+  if (ret != ESP_OK)
+    return ret;
+
+  mqtt5_api_subscription_t sub_gate_state = {
+    .callback = &gate_state_mqtt,
+  };
+  snprintf(sub_gate_state.topic, MAX_MQTT_TOPIC_LEN, "%s/%s", BASE_MQTT_TOPIC,
+           GATE_STATE_TOPIC);
+
+  ret = mqtt5_api_subscribe(&sub_gate_state);
   if (ret != ESP_OK)
     return ret;
 
