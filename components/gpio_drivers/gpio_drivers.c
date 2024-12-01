@@ -15,7 +15,6 @@
 #include <stdbool.h>
 #include <string.h>
 
-
 #define GPIO_ISR_SERVICE_DEFAULT_FLAGS 0
 
 static const char *TAG = "GPIO";
@@ -62,12 +61,11 @@ esp_err_t gpio_set_config_input(gpio_pinout_t pin, void isr_handler(void *),
 
 esp_err_t gpio_write(gpio_t *self, gpio_state_t state)
 {
-  ESP_LOGI(TAG, "Writing to pin %d: %d", self->pin, state);
   gpio_set_level(self->pin, (uint32_t)state);
   return ESP_OK;
 }
 
-int32_t gpio_read(gpio_t *self)
+gpio_state_t gpio_read(gpio_t *self)
 {
   return gpio_get_level(self->pin);
 }
@@ -82,21 +80,22 @@ void gpio_toggle(gpio_t *self)
 void gpio_init_impl(gpio_t *self)
 {
   s_gpio_instance = self;
-  s_gpio_instance->_state = GPIO_STATE_LOW;
   s_gpio_instance->get_state = &gpio_read;
   s_gpio_instance->set_state = &gpio_write;
-  s_gpio_instance->toggle = &gpio_toggle;
+  //s_gpio_instance->toggle = &gpio_toggle;
 
   switch (s_gpio_instance->_mode)
   {
     case GPIO_MODE_INPUT:
     {
-      gpio_set_config_input(s_gpio_instance->pin, s_gpio_instance->isr_handler, NULL);
+      gpio_set_config_input(s_gpio_instance->pin, s_gpio_instance->isr_handler,
+                            NULL);
       break;
     }
     case GPIO_MODE_OUTPUT:
     {
       gpio_set_config_output(s_gpio_instance->pin);
+      gpio_write(s_gpio_instance, s_gpio_instance->_act_state);
       break;
     }
     default:
