@@ -150,11 +150,11 @@ typedef enum
  */
 typedef struct gpio
 {
-  struct gpio *next;     /**< Pointer to the next GPIO object in the list */
-  gpio_pinout_t pin;     /**< GPIO pin number */
-  gpio_state_t _state;   /**< Current state of the GPIO pin */
-  gpio_config_t _config; /**< Configuration of the GPIO pin */
-  gpio_mode_t _mode;     /**< Mode of the GPIO pin */
+  struct gpio *next;       /**< Pointer to the next GPIO object in the list */
+  gpio_pinout_t pin;       /**< GPIO pin number */
+  gpio_state_t _act_state; /**< Current state of the GPIO pin */
+  gpio_config_t _config;   /**< Configuration of the GPIO pin */
+  gpio_mode_t _mode;       /**< Mode of the GPIO pin */
 
   void (*isr_handler)(void *); /**< ISR handler function */
   void *isr_handler_arg;       /**< Argument to the ISR handler function */
