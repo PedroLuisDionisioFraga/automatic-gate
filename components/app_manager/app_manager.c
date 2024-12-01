@@ -19,6 +19,7 @@
 #include <string.h>
 
 #include "gate.h"
+#include "motor.h"
 #include "mqtt5_secrets.h"
 #include "wifi_secrets.h"
 
@@ -135,6 +136,32 @@ static void gate_task(void *pvParameters)
   }
 }
 
+static void motor_task(void *pvParameters)
+{
+  ESP_LOGI(TAG, "Starting motor task...");
+
+  motor_t motor;
+  motor_init(&motor);
+
+  // // Wait for Wi-Fi to connect
+  // EventBits_t bits = xEventGroupWaitBits(
+  //   mqtt5_connected_bit, MQTT_CONNECTED_BIT, pdTRUE, pdFALSE, portMAX_DELAY);
+
+  // if (bits & MQTT_CONNECTED_BIT)
+  // {
+  //   ESP_LOGI(TAG, "MQTT5 connected, starting motor...");
+
+  //   // motor_t motor;
+  //   // motor_init_impl(&motor);
+  //   motor_init();
+  // }
+
+  while (1)
+  {
+    vTaskDelay(2000 / portTICK_PERIOD_MS);
+  }
+}
+
 void application_manager_init()
 {
   wifi_connected_bit = xEventGroupCreate();
@@ -150,8 +177,13 @@ void application_manager_init()
   FREERTOS_ERR_CHECK(xTaskCreate(&mqtt5_task, "MQTT5 Task", 4096, NULL,
                                  tskIDLE_PRIORITY + 1, &mqtt5_task_handle));
 
-  FREERTOS_ERR_CHECK(xTaskCreate(&gate_task, "Gate Task", 4096, NULL,
-                                 tskIDLE_PRIORITY + 1, &gate_task_handle));
+  // FREERTOS_ERR_CHECK(xTaskCreate(&gate_task, "Gate Task", 4096, NULL,
+  //                                tskIDLE_PRIORITY + 1, &gate_task_handle));
+
+  FREERTOS_ERR_CHECK(xTaskCreate(&motor_task, "Motor Task", 4096, NULL,
+                                 tskIDLE_PRIORITY + 1, NULL));
+
+
 
   ESP_LOGI(TAG, "Application Manager initialized.");
 }
