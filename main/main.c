@@ -12,6 +12,8 @@ void manage_logs()
   esp_log_level_set("*", ESP_LOG_NONE);
   esp_log_level_set(TAG, ESP_LOG_INFO);
   esp_log_level_set("APP MANAGER", ESP_LOG_INFO);
+  esp_log_level_set("GPIO", ESP_LOG_INFO);
+  esp_log_level_set("MOTOR", ESP_LOG_INFO);
 }
 
 void app_main(void)
