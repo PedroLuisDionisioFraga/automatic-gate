@@ -40,12 +40,27 @@
 
 static const char *TAG = "APP MANAGER";
 
+//* For interrupt debugging
+extern volatile int motor_interrupt_count;
+
 static TaskHandle_t wifi_task_handle = NULL;
 static TaskHandle_t mqtt5_task_handle = NULL;
 static TaskHandle_t gate_task_handle = NULL;
 
 static EventGroupHandle_t wifi_connected_bit = NULL;
 static EventGroupHandle_t mqtt5_connected_bit = NULL;
+
+//* For interrupt debugging
+static void app_manager_task(void *pvParameters)
+{
+  ESP_LOGI(TAG, "Starting Application Manager Task...");
+
+  while (1)
+  {
+    vTaskDelay(2000 / portTICK_PERIOD_MS);
+    ESP_LOGI(TAG, "Motor Interrupt Count: %d", motor_interrupt_count);
+  }
+}
 
 /**
  * @brief Manage the Wi-Fi connection.
@@ -140,21 +155,22 @@ static void motor_task(void *pvParameters)
 {
   ESP_LOGI(TAG, "Starting motor task...");
 
-  motor_t motor;
-  motor_init(&motor);
+  // motor_t motor;
+  // motor_init(&motor);
+  // motor_start_task();
 
-  // // Wait for Wi-Fi to connect
-  // EventBits_t bits = xEventGroupWaitBits(
-  //   mqtt5_connected_bit, MQTT_CONNECTED_BIT, pdTRUE, pdFALSE, portMAX_DELAY);
+  // Wait for Wi-Fi to connect
+  EventBits_t bits = xEventGroupWaitBits(
+    mqtt5_connected_bit, MQTT_CONNECTED_BIT, pdTRUE, pdFALSE, portMAX_DELAY);
 
-  // if (bits & MQTT_CONNECTED_BIT)
-  // {
-  //   ESP_LOGI(TAG, "MQTT5 connected, starting motor...");
+  if (bits & MQTT_CONNECTED_BIT)
+  {
+    ESP_LOGI(TAG, "MQTT5 connected, starting motor...");
 
-  //   // motor_t motor;
-  //   // motor_init_impl(&motor);
-  //   motor_init();
-  // }
+    motor_t motor;
+    motor_init(&motor);
+    motor_start_task();
+  }
 
   while (1)
   {
@@ -177,13 +193,14 @@ void application_manager_init()
   FREERTOS_ERR_CHECK(xTaskCreate(&mqtt5_task, "MQTT5 Task", 4096, NULL,
                                  tskIDLE_PRIORITY + 1, &mqtt5_task_handle));
 
-  // FREERTOS_ERR_CHECK(xTaskCreate(&gate_task, "Gate Task", 4096, NULL,
-  //                                tskIDLE_PRIORITY + 1, &gate_task_handle));
+  FREERTOS_ERR_CHECK(xTaskCreate(&gate_task, "Gate Task", 4096, NULL,
+                                 tskIDLE_PRIORITY + 1, &gate_task_handle));
 
   FREERTOS_ERR_CHECK(xTaskCreate(&motor_task, "Motor Task", 4096, NULL,
                                  tskIDLE_PRIORITY + 1, NULL));
 
-
+  FREERTOS_ERR_CHECK(xTaskCreate(&app_manager_task, "App Manager Task", 4096,
+                                 NULL, tskIDLE_PRIORITY + 1, NULL));
 
   ESP_LOGI(TAG, "Application Manager initialized.");
 }

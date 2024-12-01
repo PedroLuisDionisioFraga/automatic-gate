@@ -20,6 +20,7 @@
 #define GATE_ACTION_TOPIC "gate/action"
 #define GATE_STATE_TOPIC "gate/state"
 #define GATE_STATE_TOPIC_ANSWER "gate/state/answer"
+#define GATE_STATE_TOPIC_ANSWER "gate/action/answer"
 
 /**
  * @brief Enum representing the possible states of the gate.
