@@ -94,6 +94,8 @@ static void update_state(motor_t *self, motor_state_t state)
 static void motor_control(void *arg)
 {
   gpio_pinout_t pin = (gpio_pinout_t)arg;
+  // Unused variable
+  (void)pin;
 
   motor_interrupt_count++;
 
@@ -250,15 +252,22 @@ void motor_init(motor_t *self)
 
   // Initialize the input GPIOs
   gpio_init_impl(&s_motor_control);
+
   gpio_init_impl(&s_open_endline_sensor);
+  gpio_disable_isr(&s_open_endline_sensor);
+
   gpio_init_impl(&s_close_endline_sensor);
+  gpio_disable_isr(&s_close_endline_sensor);
 
   ESP_LOGI(TAG, "Motor initialized");
-
-  xTaskCreate(motor_task, "motor_task", 2048, NULL, 10, NULL);
 
   // Create a timer to enable the ISR service
   s_motor_timer_enable_isr =
     xTimerCreate("Motor Timer to Enable ISR", pdMS_TO_TICKS(2000), pdTRUE, NULL,
                  motor_enable_isr);
+}
+
+void motor_start_task()
+{
+  xTaskCreate(motor_task, "motor_task", 2048, NULL, 10, NULL);
 }

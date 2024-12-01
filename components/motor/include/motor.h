@@ -86,4 +86,9 @@ typedef struct motor
  */
 void motor_init(motor_t *self);
 
+/**
+ * @brief Start the motor task.
+ */
+void motor_start_task();
+
 #endif  // MOTOR_H
