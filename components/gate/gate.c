@@ -51,10 +51,10 @@ static void gate_mqtt_handler(char *data, int len)
 
   uint8_t action = atoi(data);
   ESP_LOGI(TAG, "Action: %d", action);
-  ESP_LOGI(TAG, "State: %d", s_gate_instance->_state);
+  ESP_LOGI(TAG, "State: %d", s_gate_instance->_act_state);
 
   if (OBJECTIVE_STATE_OF_ACTION_ALREADY_ACHIEVED(action,
-                                                 s_gate_instance->_state))
+                                                 s_gate_instance->_act_state))
   {
     ESP_LOGW(TAG, "Gate already is in the objective state");
 
@@ -143,7 +143,7 @@ static void gate_state_mqtt(char *data, int len)
   }
 
   ESP_LOGI(TAG, "Gate state queried: %s",
-           s_gate_instance->_state == GATE_OPENED ? "OPENED" : "CLOSED");
+           s_gate_instance->_act_state == GATE_OPENED ? "OPENED" : "CLOSED");
 
   char topic[MAX_MQTT_TOPIC_LEN];
   snprintf(topic, sizeof(topic), "%s/%s", BASE_MQTT_TOPIC,
@@ -151,7 +151,7 @@ static void gate_state_mqtt(char *data, int len)
 
   char gate_state_str[2];
   snprintf(gate_state_str, sizeof(gate_state_str), "%d",
-           s_gate_instance->_state);
+           s_gate_instance->_act_state);
 
   mqtt5_api_publish(topic, gate_state_str, strlen(gate_state_str));
 }
@@ -204,7 +204,7 @@ esp_err_t gate_init_impl(gate_t *self)
     return ret;
 
   // Set initial state
-  self->_state = GATE_CLOSED;
+  self->_act_state = GATE_CLOSED;
 
   ESP_LOGI(TAG, "Gate initialized successfully");
   return ESP_OK;
@@ -222,7 +222,7 @@ static esp_err_t gate_open_impl(gate_t *self)
    *! Implement here
    */
 
-  s_gate_instance->_state = GATE_OPENED;
+  s_gate_instance->_act_state = GATE_OPENED;
 
   return ESP_OK;
 }
@@ -239,7 +239,7 @@ static esp_err_t gate_close_impl(gate_t *self)
    *! Implement here
    */
 
-  s_gate_instance->_state = GATE_CLOSED;
+  s_gate_instance->_act_state = GATE_CLOSED;
 
   return ESP_OK;
 }
@@ -256,7 +256,7 @@ static esp_err_t gate_stop_impl(gate_t *self)
    *! Implement here
    */
 
-  s_gate_instance->_state = GATE_STOPPED;
+  s_gate_instance->_act_state = GATE_STOPPED;
 
   return ESP_OK;
 }
@@ -270,8 +270,8 @@ static esp_err_t gate_stop_impl(gate_t *self)
 static gate_state_t gate_get_state_impl(gate_t *self)
 {
   ESP_LOGI(TAG, "Gate state queried: %s",
-           self->_state == GATE_OPENED ? "OPENED" : "CLOSED");
-  return self->_state;
+           self->_act_state == GATE_OPENED ? "OPENED" : "CLOSED");
+  return self->_act_state;
 }
 
 /**

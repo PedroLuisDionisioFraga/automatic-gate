@@ -49,7 +49,7 @@ typedef enum
  */
 typedef struct gate
 {
-  gate_state_t _state;      ///< The current state of the gate.
+  gate_state_t _act_state;  ///< The current state of the gate.
   uint8_t gpio_port_open;   ///< GPIO pin for opening the gate.
   uint8_t gpio_port_close;  ///< GPIO pin for closing the gate.
   char *base_mqtt_topic;    ///< Base MQTT topic for the gate.
