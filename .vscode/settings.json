@@ -48,7 +48,10 @@
     "mqtt5_client.h": "c",
     "mqtt5_properties.h": "c",
     "mqtt5_api.h": "c",
-    "mqtt_client.h": "c"
+    "mqtt_client.h": "c",
+    "gpio_drivers.h": "c",
+    "motor.h": "c",
+    "mqtt5_secrets.h": "c"
   },
   "cSpell.words": [
     "netif"
