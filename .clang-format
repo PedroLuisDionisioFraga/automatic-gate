@@ -5,6 +5,7 @@ ContinuationIndentWidth: 2
 IndentCaseLabels: true  # Indent case into switch
 AlignEscapedNewlines: LeftWithLastLine
 SpacesBeforeTrailingComments: 2
+SortIncludes: true
 IncludeBlocks: Regroup  # Regrouped with blank lines between categories
 #AllowShortIfStatementsOnASingleLine: AllIfsAndElse  # Short if in one line
 # Import Sorting
