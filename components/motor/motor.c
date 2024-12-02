@@ -90,6 +90,19 @@ static void update_state(motor_t *self, motor_state_t state)
   self->_act_state = state;
 }
 
+// TODO: (0) Implement the motor in action to put it in `gate.c`
+// Modularize this function to be used with each motor instance, i.e., pass the
+// motor instance as an argument
+void motor_in_action(motor_state_t next_state)
+{
+  s_motor_instance->_action = (motor_action_t)next_state;
+  update_state(s_motor_instance, next_state);
+
+  BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+  xQueueSendFromISR(s_motor_event_queue, &s_motor_instance->_action,
+                    &xHigherPriorityTaskWoken);
+}
+
 //* Callback function of motor INTERRUPT
 static void motor_control(void *arg)
 {
@@ -121,15 +134,10 @@ static void motor_control(void *arg)
     }
   }
 
-  s_motor_instance->_action = (motor_action_t)next_state;
-  s_motor_instance->update_state(s_motor_instance, next_state);
+  motor_in_action(next_state);
 
   gpio_disable_isr(&s_motor_control);
   xTimerStart(s_motor_timer_enable_isr, 0);
-
-  BaseType_t xHigherPriorityTaskWoken = pdFALSE;
-  xQueueSendFromISR(s_motor_event_queue, &s_motor_instance->_action,
-                    &xHigherPriorityTaskWoken);
 }
 
 // Helper function to set LED states
@@ -154,6 +162,7 @@ static esp_err_t set_led_states(gpio_state_t opening, gpio_state_t closing,
 }
 
 //* (Motor task) to update the LED states based on received QUEUE
+//* It will be used in MQTT implementation to control the motor
 static void motor_task(void *pvParameters)
 {
   motor_action_t rcv_action;
@@ -162,8 +171,6 @@ static void motor_task(void *pvParameters)
     if (xQueueReceive(s_motor_event_queue, &rcv_action, portMAX_DELAY) ==
         pdTRUE)
     {
-      esp_err_t ret;
-
       ESP_LOGI(TAG, "Motor receive action: %s",
                (rcv_action == ACTION_STOP_MOTOR) ? "ACTION_STOP_MOTOR"
                : (rcv_action == ACTION_CLOCKWISE_MOTOR)
@@ -174,7 +181,7 @@ static void motor_task(void *pvParameters)
       {
         case ACTION_STOP_MOTOR:
         {
-          ret = set_led_states(GPIO_STATE_LOW, GPIO_STATE_LOW, GPIO_STATE_HIGH);
+          set_led_states(GPIO_STATE_LOW, GPIO_STATE_LOW, GPIO_STATE_HIGH);
 
           gpio_disable_isr(&s_open_endline_sensor);
           gpio_disable_isr(&s_close_endline_sensor);
@@ -183,7 +190,7 @@ static void motor_task(void *pvParameters)
         }
         case ACTION_CLOCKWISE_MOTOR:
         {
-          ret = set_led_states(GPIO_STATE_HIGH, GPIO_STATE_LOW, GPIO_STATE_LOW);
+          set_led_states(GPIO_STATE_HIGH, GPIO_STATE_LOW, GPIO_STATE_LOW);
 
           gpio_enable_isr(&s_open_endline_sensor);
           gpio_disable_isr(&s_close_endline_sensor);
@@ -192,7 +199,7 @@ static void motor_task(void *pvParameters)
         }
         case ACTION_COUNTERCLOCKWISE_MOTOR:
         {
-          ret = set_led_states(GPIO_STATE_LOW, GPIO_STATE_HIGH, GPIO_STATE_LOW);
+          set_led_states(GPIO_STATE_LOW, GPIO_STATE_HIGH, GPIO_STATE_LOW);
 
           gpio_enable_isr(&s_close_endline_sensor);
           gpio_disable_isr(&s_open_endline_sensor);
@@ -215,7 +222,7 @@ static void motor_opened(void *arg)
   gpio_disable_isr(&s_open_endline_sensor);
   gpio_disable_isr(&s_close_endline_sensor);
 
-  s_motor_instance->update_state(s_motor_instance, STATE_MOTOR_STOPPED);
+  update_state(s_motor_instance, STATE_MOTOR_STOPPED);
 }
 
 static void motor_closed(void *arg)
@@ -227,7 +234,7 @@ static void motor_closed(void *arg)
   gpio_disable_isr(&s_open_endline_sensor);
   gpio_disable_isr(&s_close_endline_sensor);
 
-  s_motor_instance->update_state(s_motor_instance, STATE_MOTOR_STOPPED);
+  update_state(s_motor_instance, STATE_MOTOR_STOPPED);
 }
 
 static void motor_enable_isr(TimerHandle_t xTimer)
@@ -235,12 +242,19 @@ static void motor_enable_isr(TimerHandle_t xTimer)
   gpio_enable_isr(&s_motor_control);
 }
 
+static motor_state_t get_state(motor_t *self)
+{
+  return self->_act_state;
+}
+
 void motor_init(motor_t *self)
 {
   s_motor_instance = self;
   s_motor_instance->_act_state = STATE_MOTOR_STOPPED;
   s_motor_instance->_last_state = STATE_MOTOR_IN_COUNTERCLOCKWISE;
-  s_motor_instance->update_state = &update_state;
+  s_motor_instance->in_action = &motor_in_action;
+  s_motor_instance->get_state = &get_state;
+
   // TODO: Implement the toggle function
 
   s_motor_event_queue = xQueueCreate(MAX_QUEUE_SIZE, sizeof(motor_state_t));

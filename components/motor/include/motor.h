@@ -44,41 +44,9 @@ typedef struct motor
   motor_state_t _last_state;  ///< Last state of the motor.
   motor_action_t _action;     ///< Current action of the motor.
 
-  /**
-   * @brief Update the state of the motor.
-   *
-   * @param self Pointer to the motor object.
-   */
-  void (*update_state)(struct motor *self, motor_state_t state);
+  void (*in_action)(motor_state_t next_state);
 
-  /**
-   * @brief Open the gate.
-   *
-   * @param self Pointer to the motor object.
-   */
-  void (*open)(struct motor *self);
-
-  /**
-   * @brief Close the gate.
-   *
-   * @param self Pointer to the motor object.
-   */
-  void (*close)(struct motor *self);
-
-  /**
-   * @brief Stop the motor.
-   *
-   * @param self Pointer to the motor object.
-   */
-  void (*stop)(struct motor *self);
-
-  /**
-   * @brief Toggle the state of the motor.
-   *
-   * @param self Pointer to the motor object.
-   */
-  void (*toggle)(struct motor *self);
-
+  motor_state_t (*get_state)(struct motor *self);
 } motor_t;
 
 /**

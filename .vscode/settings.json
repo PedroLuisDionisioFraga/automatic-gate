@@ -51,9 +51,11 @@
     "mqtt_client.h": "c",
     "gpio_drivers.h": "c",
     "motor.h": "c",
-    "mqtt5_secrets.h": "c"
+    "mqtt5_secrets.h": "c",
+    "gate.h": "c"
   },
   "cSpell.words": [
+    "LOGI",
     "netif"
   ],
 }
