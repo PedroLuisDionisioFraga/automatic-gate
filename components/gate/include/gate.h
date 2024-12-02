@@ -16,11 +16,13 @@
 
 #include <esp_err.h>
 
+#include "motor.h"
+
 #define BASE_MQTT_TOPIC "Inatel/C115/2024/Semester/02"
 #define GATE_ACTION_TOPIC "gate/action"
 #define GATE_STATE_TOPIC "gate/state"
 #define GATE_STATE_TOPIC_ANSWER "gate/state/answer"
-#define GATE_STATE_TOPIC_ANSWER "gate/action/answer"
+#define GATE_ACTION_TOPIC_ANSWER "gate/action/answer"
 
 /**
  * @brief Enum representing the possible states of the gate.
@@ -43,6 +45,7 @@ typedef enum
   GATE_MQTT_OPEN = 0,
   GATE_MQTT_CLOSE,
   GATE_MQTT_STOP,
+  GATE_MQTT_INVALID_ACTION,  // Invalid action
 } gate_mqtt_action_t;
 
 /**
@@ -54,13 +57,6 @@ typedef struct gate
   uint8_t gpio_port_open;   ///< GPIO pin for opening the gate.
   uint8_t gpio_port_close;  ///< GPIO pin for closing the gate.
   char *base_mqtt_topic;    ///< Base MQTT topic for the gate.
-
-  /**
-   * @brief Initialize the gate.
-   *
-   * @return ESP_OK if successful, ESP_FAIL otherwise.
-   */
-  esp_err_t (*init)(struct gate *self);
 
   /**
    * @brief Start the action of the gate.
@@ -98,6 +94,6 @@ typedef struct gate
  * @param self
  * @return ESP_OK on success, ESP_FAIL otherwise.
  */
-esp_err_t gate_init_impl(gate_t *self);
+esp_err_t gate_init_impl(gate_t *self, motor_t *motor);
 
 #endif  // GATE_H

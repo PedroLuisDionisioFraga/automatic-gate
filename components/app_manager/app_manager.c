@@ -139,37 +139,12 @@ static void gate_task(void *pvParameters)
 
   if (bits & MQTT_CONNECTED_BIT)
   {
-    ESP_LOGI(TAG, "MQTT5 connected, starting gate...");
-
-    gate_t gate;
-    gate_init_impl(&gate);
-  }
-
-  while (1)
-  {
-    vTaskDelay(2000 / portTICK_PERIOD_MS);
-  }
-}
-
-static void motor_task(void *pvParameters)
-{
-  ESP_LOGI(TAG, "Starting motor task...");
-
-  // motor_t motor;
-  // motor_init(&motor);
-  // motor_start_task();
-
-  // Wait for Wi-Fi to connect
-  EventBits_t bits = xEventGroupWaitBits(
-    mqtt5_connected_bit, MQTT_CONNECTED_BIT, pdTRUE, pdFALSE, portMAX_DELAY);
-
-  if (bits & MQTT_CONNECTED_BIT)
-  {
-    ESP_LOGI(TAG, "MQTT5 connected, starting motor...");
+    ESP_LOGI(TAG, "MQTT5 connected, starting gate and motor...");
 
     motor_t motor;
-    motor_init(&motor);
-    motor_start_task();
+    gate_t gate;
+    // TODO: Implement the motor in another way or array of motors
+    gate_init_impl(&gate, &motor);
   }
 
   while (1)
@@ -195,9 +170,6 @@ void application_manager_init()
 
   FREERTOS_ERR_CHECK(xTaskCreate(&gate_task, "Gate Task", 4096, NULL,
                                  tskIDLE_PRIORITY + 1, &gate_task_handle));
-
-  FREERTOS_ERR_CHECK(xTaskCreate(&motor_task, "Motor Task", 4096, NULL,
-                                 tskIDLE_PRIORITY + 1, NULL));
 
   FREERTOS_ERR_CHECK(xTaskCreate(&app_manager_task, "App Manager Task", 4096,
                                  NULL, tskIDLE_PRIORITY + 1, NULL));

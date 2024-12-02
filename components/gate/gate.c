@@ -32,10 +32,38 @@
 static const char *TAG = "GATE";
 
 static gate_t *s_gate_instance = NULL;
+static motor_t *s_motor_instance = NULL;
 
 /* Forward declaration */
-static void gate_init_instance(gate_t *gate_instance, uint8_t gpio_open,
-                               uint8_t gpio_close);
+static void gate_init_instances(gate_t *self);
+
+static void motor_state_to_gate_state()
+{
+  ESP_LOGI(TAG, "Motor state BEFORE update it: %d",
+           s_motor_instance->_act_state);
+  motor_action_t motor_state = s_motor_instance->get_state(s_motor_instance);
+  ESP_LOGI(TAG, "Motor state AFTER update it: %d",
+           s_motor_instance->_act_state);
+  switch (motor_state)
+  {
+    case ACTION_CLOCKWISE_MOTOR:
+      s_gate_instance->_act_state = GATE_OPENED;
+      break;
+    case ACTION_COUNTERCLOCKWISE_MOTOR:
+      s_gate_instance->_act_state = GATE_CLOSED;
+      break;
+    case ACTION_STOP_MOTOR:
+      s_gate_instance->_act_state = GATE_STOPPED;
+      break;
+    default:
+      break;
+  }
+}
+
+static void update_gate_state()
+{
+  motor_state_to_gate_state();
+}
 
 /**
  * @brief Handler to MQTT subscription
@@ -51,7 +79,14 @@ static void gate_mqtt_handler(char *data, int len)
 
   uint8_t action = atoi(data);
   ESP_LOGI(TAG, "Action: %d", action);
+  update_gate_state();
   ESP_LOGI(TAG, "State: %d", s_gate_instance->_act_state);
+
+  if (action > (GATE_MQTT_INVALID_ACTION - 1))
+  {
+    ESP_LOGE(TAG, "Invalid action");
+    return;
+  }
 
   if (OBJECTIVE_STATE_OF_ACTION_ALREADY_ACHIEVED(action,
                                                  s_gate_instance->_act_state))
@@ -60,7 +95,7 @@ static void gate_mqtt_handler(char *data, int len)
 
     char topic[MAX_MQTT_TOPIC_LEN];
     snprintf(topic, sizeof(topic), "%s/%s", BASE_MQTT_TOPIC,
-             GATE_STATE_TOPIC_ANSWER);
+             GATE_ACTION_TOPIC_ANSWER);
 
     char gate_state_str[3];
     snprintf(gate_state_str, sizeof(gate_state_str), "%d", -1);
@@ -124,16 +159,6 @@ static void gate_mqtt_handler(char *data, int len)
   }
 }
 
-// TODO: Implement using GPIO driver
-static esp_err_t _configure_gpio(uint8_t gpio_pin)
-{
-  /**
-   *! Implement here
-   */
-
-  return ESP_OK;
-}
-
 static void gate_state_mqtt(char *data, int len)
 {
   if (!s_gate_instance)
@@ -142,8 +167,9 @@ static void gate_state_mqtt(char *data, int len)
     return;
   }
 
+  update_gate_state();
   ESP_LOGI(TAG, "Gate state queried: %s",
-           s_gate_instance->_act_state == GATE_OPENED ? "OPENED" : "CLOSED");
+           s_gate_instance->_act_state == GATE_OPENED ? "OPENED" : (s_gate_instance->_act_state == GATE_CLOSED ? "CLOSED" : "STOPPED"));
 
   char topic[MAX_MQTT_TOPIC_LEN];
   snprintf(topic, sizeof(topic), "%s/%s", BASE_MQTT_TOPIC,
@@ -162,16 +188,20 @@ static void gate_state_mqtt(char *data, int len)
  * @param self Pointer to the gate instance.
  * @return ESP_OK on success, ESP_FAIL otherwise.
  */
-esp_err_t gate_init_impl(gate_t *self)
+esp_err_t gate_init_impl(gate_t *self, motor_t *motor)
 {
   if (!self)
     return ESP_FAIL;
 
   // Initialize the gate instance
-  gate_init_instance(self, 0, 0);
+  gate_init_instances(self);
 
-  s_gate_instance = self;
+  // Initialize the motor
+  s_motor_instance = motor;
+  motor_init(motor);
+  motor_start_task();
 
+  // Subscribe to MQTT topics
   esp_err_t ret;
 
   mqtt5_api_subscription_t sub_gate_action = {
@@ -194,15 +224,6 @@ esp_err_t gate_init_impl(gate_t *self)
   if (ret != ESP_OK)
     return ret;
 
-  // Configure the GPIO pins
-  ret = _configure_gpio(self->gpio_port_open);
-  if (ret != ESP_OK)
-    return ret;
-
-  ret = _configure_gpio(self->gpio_port_close);
-  if (ret != ESP_OK)
-    return ret;
-
   // Set initial state
   self->_act_state = GATE_CLOSED;
 
@@ -218,9 +239,7 @@ static esp_err_t gate_open_impl(gate_t *self)
 
   ESP_LOGI(TAG, "Gate opening");
 
-  /**
-   *! Implement here
-   */
+  s_motor_instance->in_action(ACTION_CLOCKWISE_MOTOR);
 
   s_gate_instance->_act_state = GATE_OPENED;
 
@@ -235,9 +254,7 @@ static esp_err_t gate_close_impl(gate_t *self)
 
   ESP_LOGI(TAG, "Gate closing");
 
-  /**
-   *! Implement here
-   */
+  s_motor_instance->in_action(ACTION_COUNTERCLOCKWISE_MOTOR);
 
   s_gate_instance->_act_state = GATE_CLOSED;
 
@@ -252,9 +269,7 @@ static esp_err_t gate_stop_impl(gate_t *self)
 
   ESP_LOGI(TAG, "Gate stopped");
 
-  /**
-   *! Implement here
-   */
+  s_motor_instance->in_action(ACTION_STOP_MOTOR);
 
   s_gate_instance->_act_state = GATE_STOPPED;
 
@@ -278,17 +293,13 @@ static gate_state_t gate_get_state_impl(gate_t *self)
  * @brief Initialize the gate instance.
  *
  * @param gate_instance
- * @param gpio_open
- * @param gpio_close
  */
-static void gate_init_instance(gate_t *gate_instance, uint8_t gpio_open,
-                               uint8_t gpio_close)
+static void gate_init_instances(gate_t *self)
 {
-  gate_instance->gpio_port_open = gpio_open;
-  gate_instance->gpio_port_close = gpio_close;
-  gate_instance->init = gate_init_impl;
-  gate_instance->open = gate_open_impl;
-  gate_instance->close = gate_close_impl;
-  gate_instance->stop = gate_stop_impl;
-  gate_instance->get_state = gate_get_state_impl;
+  s_gate_instance = self;
+
+  self->open = gate_open_impl;
+  self->close = gate_close_impl;
+  self->stop = gate_stop_impl;
+  self->get_state = gate_get_state_impl;
 }
