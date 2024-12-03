@@ -14,8 +14,10 @@
 #include <esp_log.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/queue.h>
+#include <string.h>
 
 #include "gpio_drivers.h"
+#include "mqtt5_api.h"
 
 #define MOTOR_CONTROL_PIN D14
 
@@ -37,6 +39,11 @@ volatile int motor_interrupt_count = 0;
 static motor_t *s_motor_instance = NULL;
 
 static TimerHandle_t s_motor_timer_enable_isr = NULL;
+
+int aux;
+static EventGroupHandle_t bits;
+#define BIT_NOJO BIT3
+static void task_nojo(void *pvParameters);
 
 static void motor_control(void *arg);
 static void motor_opened(void *arg);
@@ -120,6 +127,9 @@ static void motor_control(void *arg)
       next_state = (s_motor_instance->_last_state == STATE_MOTOR_IN_CLOCKWISE)
                      ? STATE_MOTOR_IN_COUNTERCLOCKWISE
                      : STATE_MOTOR_IN_CLOCKWISE;
+
+      aux = 2;
+      xEventGroupSetBits(bits, BIT_NOJO);
       break;
     }
     case STATE_MOTOR_IN_COUNTERCLOCKWISE:
@@ -222,6 +232,9 @@ static void motor_opened(void *arg)
   gpio_disable_isr(&s_open_endline_sensor);
   gpio_disable_isr(&s_close_endline_sensor);
 
+  aux = 2;
+  xEventGroupSetBits(bits, BIT_NOJO);
+
   update_state(s_motor_instance, STATE_MOTOR_STOPPED);
 }
 
@@ -233,6 +246,9 @@ static void motor_closed(void *arg)
 
   gpio_disable_isr(&s_open_endline_sensor);
   gpio_disable_isr(&s_close_endline_sensor);
+
+  aux = 2;
+  xEventGroupSetBits(bits, BIT_NOJO);
 
   update_state(s_motor_instance, STATE_MOTOR_STOPPED);
 }
@@ -279,9 +295,35 @@ void motor_init(motor_t *self)
   s_motor_timer_enable_isr =
     xTimerCreate("Motor Timer to Enable ISR", pdMS_TO_TICKS(2000), pdTRUE, NULL,
                  motor_enable_isr);
+
+  // nojo
+  bits = xEventGroupCreate();
+  xEventGroupClearBits(bits, BIT_NOJO);
+  xTaskCreate(task_nojo, "task_nojo", 2048, NULL, 10, NULL);
 }
 
 void motor_start_task()
 {
   xTaskCreate(motor_task, "motor_task", 2048, NULL, 10, NULL);
+}
+
+static void task_nojo(void *pvParameters)
+{
+  while (1)
+  {
+    EventBits_t bits_aaaa =
+      xEventGroupWaitBits(bits, BIT_NOJO, pdTRUE, pdFALSE, portMAX_DELAY);
+    if (bits_aaaa & BIT_NOJO)
+    {
+      ESP_LOGE(TAG, "Nojo");
+      char topic[128];
+      snprintf(topic, sizeof(topic), "%s/%s", "Inatel/C115/2024/Semester/02",
+               "gate/state/answer");
+
+      char gate_state_str[2];
+      snprintf(gate_state_str, sizeof(gate_state_str), "%d", aux);
+
+      mqtt5_api_publish(topic, gate_state_str, strlen(gate_state_str));
+    }
+  }
 }

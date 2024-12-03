@@ -1,3 +1,3 @@
 idf_component_register(SRCS "motor.c"
                     INCLUDE_DIRS "include"
-                    REQUIRES gpio_drivers)
+                    REQUIRES gpio_drivers mqtt5_api)
